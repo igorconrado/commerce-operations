@@ -15,6 +15,8 @@ Recovery-test first run: the error appeared correctly, but Playwright's generic 
 
 Final browser rerun: all four scenarios passed (desktop/mobile main flow and keyboard/network-retry flow). Production dependency audit passed; the development audit emitted only the documented exception.
 
+Clean-tree database rerun at commit `f32f07a9f0fd7d51d1d1e15e1e51df917e42d9a6`: all six integration tests passed. [Raw concurrency data](reports/reservation-concurrency-2026-10-14.json) records 10 accepted/90 expected stock refusals, with per-request p50 139.69 ms, p95 285.61 ms and p99 326.06 ms. These single-run durations include connection/pool wait and are not performance gains. [Implementation PR #1](https://github.com/igorconrado/commerce-operations/pull/1) is self-authored, not independent review.
+
 Docker: initial named pipe absent; after starting Docker Desktop, `docker info` did not complete. That individual diagnostic process was stopped. No existing containers or user data were deleted. Native PostgreSQL provided an independent test environment. Container build/execution remains a separate CI/local boundary.
 
 Dependency audit: production audit clean at inspection; full development audit contains a documented unpatched braces advisory. See [security](security.md), including the narrow exception. This is not an all-dependencies-clean claim.
