@@ -5,3 +5,5 @@ node_modules
 .env*
 test-results
 playwright-report
+infra/.terraform
+infra/*.tfstate*

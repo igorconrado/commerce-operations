@@ -1,0 +1,29 @@
+name: publish-approved-demo-image
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    environment: demo
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PUBLISHER_ROLE }}
+          aws-region: us-east-1
+          role-duration-seconds: 900
+      - name: Publish immutable image after environment approval
+        env:
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          test -n "$ECR_REPOSITORY"
+          registry="${ECR_REPOSITORY%%/*}"
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "$registry"
+          docker build -t "$ECR_REPOSITORY:$COMMIT" .
+          docker push "$ECR_REPOSITORY:$COMMIT"

@@ -5,3 +5,4 @@ package-lock.json
 test-results
 playwright-report
 next-env.d.ts
+infra/.terraform
