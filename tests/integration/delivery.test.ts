@@ -106,6 +106,92 @@ test("HTTP provider applies one charge; lost response forces lookup before settl
     "confirmed",
   );
 });
+for (const crossTenant of [false, true]) {
+  test(`mismatched ${crossTenant ? "tenant" : "order"} response cannot settle charge or reconciliation`, async () => {
+    const { order, event } = await reserved();
+    const other = await reserve(
+      crossTenant
+        ? { ...principal, id: fixtures.other, organizationId: fixtures.beta }
+        : principal,
+      {
+        key: randomUUID(),
+        variantId: crossTenant ? fixtures.otherVariant : fixtures.variant,
+        quantity: 1,
+      },
+    );
+    const response = {
+      schemaVersion: 1,
+      eventId: randomUUID(),
+      orderId: other.id,
+      organizationId: crossTenant ? fixtures.beta : fixtures.alpha,
+      version: 1,
+      outcome: "succeeded",
+    };
+    let charges = 0;
+    let lookups = 0;
+    const mismatched: PaymentGateway = {
+      charge: async () => {
+        charges++;
+        return response;
+      },
+      lookup: async () => {
+        lookups++;
+        return response;
+      },
+    };
+    await assert.rejects(
+      deliver(event.id, mismatched),
+      /PROVIDER_RESPONSE_MISMATCH/,
+    );
+    await assert.rejects(
+      deliver(event.id, mismatched),
+      /PROVIDER_RESPONSE_MISMATCH/,
+    );
+    assert.equal(charges, 1);
+    assert.equal(lookups, 1);
+    assert.deepEqual(
+      (
+        await pool.query("SELECT status FROM orders WHERE id=ANY($1::uuid[])", [
+          [order.id, other.id],
+        ])
+      ).rows.map((row) => row.status),
+      ["reserved", "reserved"],
+    );
+    assert.equal(
+      Number(
+        (await pool.query("SELECT count(*) FROM payment_inbox")).rows[0].count,
+      ),
+      0,
+    );
+    assert.equal(
+      (
+        await pool.query(
+          "SELECT status FROM payment_commands WHERE order_id=$1",
+          [order.id],
+        )
+      ).rows[0].status,
+      "unknown",
+    );
+    const pending = (
+      await pool.query("SELECT processed_at,attempts FROM outbox WHERE id=$1", [
+        event.id,
+      ])
+    ).rows[0];
+    assert.equal(pending.processed_at, null);
+    assert.equal(pending.attempts, 2);
+    await deliver(event.id, gateway);
+    assert.equal(
+      (await pool.query("SELECT status FROM orders WHERE id=$1", [order.id]))
+        .rows[0].status,
+      "confirmed",
+    );
+    assert.equal(
+      (await pool.query("SELECT status FROM orders WHERE id=$1", [other.id]))
+        .rows[0].status,
+      "reserved",
+    );
+  });
+}
 test("process crash after external effect before checkpoint recovers without a second charge", async () => {
   const { order, event } = await reserved();
   const child = spawn(

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { pool, transaction } from "./db";
-import { receivePayment } from "./payments";
+import { paymentEvent, receivePayment } from "./payments";
 import type { PaymentGateway, Charge } from "./payment-gateway";
 import {
   DomainError,
@@ -102,7 +102,13 @@ export async function deliver(
         result = await gateway.charge(prepared.charge);
       }
       afterExternalEffect?.();
-      await receivePayment(result);
+      const response = paymentEvent.parse(result);
+      if (
+        response.orderId !== prepared.charge.orderId ||
+        response.organizationId !== prepared.charge.organizationId
+      )
+        throw new Error("PROVIDER_RESPONSE_MISMATCH");
+      await receivePayment(response);
       await transaction(async (client) => {
         await client.query(
           "UPDATE payment_commands SET status='settled' WHERE order_id=$1",
