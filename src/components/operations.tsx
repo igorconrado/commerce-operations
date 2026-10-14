@@ -18,6 +18,7 @@ type Order = {
 type Snapshot = {
   viewer: { role: string; organizationId: string } | null;
   catalog: Variant[];
+  customers: { id: string; name: string }[];
   failedDeliveries: {
     id: string;
     orderId: string;
@@ -31,7 +32,7 @@ const money = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     cents / 100,
   );
-const query = `query Snapshot($after:ID){viewer{role organizationId} catalog{id sku name priceCents available} orders(first:20,after:$after){nodes{id quantity unitPriceCents status version} hasNextPage endCursor} exceptions{id orderId reason} failedDeliveries{id orderId attempts error}}`;
+const query = `query Snapshot($after:ID){viewer{role organizationId} customers{id name} catalog{id sku name priceCents available} orders(first:20,after:$after){nodes{id quantity unitPriceCents status version} hasNextPage endCursor} exceptions{id orderId reason} failedDeliveries{id orderId attempts error}}`;
 async function graphql<T>(query: string, variables: object = {}): Promise<T> {
   const response = await fetch("/api/graphql", {
     method: "POST",
@@ -47,6 +48,8 @@ const messages: Record<string, string> = {
   VERSION_CONFLICT: "Este pedido mudou. Atualize os dados antes de decidir.",
   RESERVATION_EXPIRED: "Esta reserva já venceu. Atualize os dados.",
   INVALID_TRANSITION: "O pedido já foi encerrado.",
+  CUSTOMER_NOT_FOUND:
+    "Cliente indisponível nesta organização. Atualize os dados.",
   STOCK_UNAVAILABLE:
     "Estoque insuficiente. Atualize os dados e ajuste a quantidade.",
   IDEMPOTENCY_CONFLICT:
@@ -63,9 +66,11 @@ export function Operations() {
   const [email, setEmail] = useState("operator@aurora.test");
   const [password, setPassword] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [customerId, setCustomerId] = useState("");
   const [variantId, setVariantId] = useState("");
   const [attempt, setAttempt] = useState<{
     key: string;
+    customerId: string;
     variantId: string;
     quantity: number;
   } | null>(null);
@@ -82,7 +87,16 @@ export function Operations() {
           }
         : next,
     );
-    setVariantId((current) => current || next.catalog[0]?.id || "");
+    setVariantId((current) =>
+      next.catalog.some((v) => v.id === current)
+        ? current
+        : (next.catalog[0]?.id ?? ""),
+    );
+    setCustomerId((current) =>
+      next.customers.some((c) => c.id === current)
+        ? current
+        : (next.customers[0]?.id ?? ""),
+    );
   }, []);
   useEffect(() => {
     let active = true;
@@ -91,6 +105,7 @@ export function Operations() {
         if (active) {
           setData(next);
           setVariantId(next.catalog[0]?.id ?? "");
+          setCustomerId(next.customers[0]?.id ?? "");
         }
       })
       .catch((e: Error) => {
@@ -130,7 +145,12 @@ export function Operations() {
     setBusy(true);
     setError("");
     setNotice("");
-    const input = attempt ?? { key: crypto.randomUUID(), variantId, quantity };
+    const input = attempt ?? {
+      key: crypto.randomUUID(),
+      variantId,
+      quantity,
+      customerId,
+    };
     setAttempt(input);
     try {
       const result = await graphql<{ reserve: Order }>(
@@ -339,6 +359,20 @@ export function Operations() {
                   <p>Seu acesso permite consultar pedidos e estoque.</p>
                 ) : (
                   <form onSubmit={reserve}>
+                    <label htmlFor="customer">Cliente</label>
+                    <select
+                      id="customer"
+                      required
+                      disabled={busy || !!attempt}
+                      value={customerId}
+                      onChange={(e) => setCustomerId(e.target.value)}
+                    >
+                      {data.customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
                     <label htmlFor="variant">Produto</label>
                     <select
                       id="variant"

@@ -51,7 +51,7 @@ npm run format:check
 npm run lint
 npm run typecheck
 npm test
-node --import tsx scripts/run-local.ts --test --import tsx --test tests/integration/reservations.test.ts
+node --import tsx scripts/run-local.ts --test --import tsx --test --test-concurrency=1 tests/integration/*.test.ts
 npm run build
 npx playwright install chromium
 npm run test:e2e
@@ -82,6 +82,8 @@ The initial modular monolith runs the Node GraphQL adapter inside Next route han
 - Migrations are append-only and transactionally versioned under an advisory lock.
 
 ## Implemented versus planned
+
+Customer and product records are organization-scoped. The reservation UI selects a synthetic customer; existing clients that omit customerId use the organization's default demonstrative customer. The migration preserves legacy default-command fingerprints and supplies the default through an insert trigger for application rollback compatibility. Products own variants; each order currently has one variant line. Catalog/customer administration and multi-line checkout are deliberately outside this demonstrator increment.
 
 Implemented: separate HTTP payment simulator, durable uncertain-result reconciliation, Redis/BullMQ dispatch, bounded retries and authorized replay dashboard, confirmation/cancellation with optimistic versions, database-clock expiration command, HMAC-authenticated durable payment inbox, duplicate/late-event handling, operational exceptions, reservation vertical slice, one variant line per order, one warehouse represented by available balance, two organizations, operator/viewer sessions, audit/movement/outbox persistence, SQL invariants, responsive UI, local tests and CI configuration.
 

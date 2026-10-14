@@ -18,8 +18,8 @@ const ids = Array.from(
 );
 for (const [i, id] of ids.entries())
   await pool.query(
-    "INSERT INTO variants(id,organization_id,sku,name,price_cents,available) VALUES($1,$2,$3,$3,100,100)",
-    [id, fixtures.alpha, `BENCH-${i}`],
+    "INSERT INTO variants(id,organization_id,sku,name,price_cents,available,product_id) VALUES($1,$2,$3,$3,100,100,$4)",
+    [id, fixtures.alpha, `BENCH-${i}`, fixtures.variant],
   );
 const principal = {
   id: fixtures.operator,

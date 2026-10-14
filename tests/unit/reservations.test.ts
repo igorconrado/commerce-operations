@@ -33,6 +33,10 @@ test("fingerprint is stable and binds actor, variant and quantity", () => {
   assert.equal(base, fingerprint("actor", valid.variantId, 1));
   assert.notEqual(base, fingerprint("other", valid.variantId, 1));
   assert.notEqual(base, fingerprint("actor", valid.variantId, 2));
+  assert.notEqual(
+    base,
+    fingerprint("actor", valid.variantId, 1, "another-customer"),
+  );
 });
 test("only authenticated operators can mutate", () => {
   assert.throws(() => requireOperator(null), /UNAUTHENTICATED/);

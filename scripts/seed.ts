@@ -29,8 +29,16 @@ export async function seed() {
       );
     }
     await client.query(
-      `INSERT INTO variants(id,organization_id,sku,name,price_cents,available) VALUES
-      ($1,$2,'LMP-01','Luminária de mesa · areia',18900,10),($3,$4,'CAD-01','Caderno pontilhado · musgo',4900,10) ON CONFLICT DO NOTHING`,
+      "INSERT INTO products(id,organization_id,name) VALUES($1,$2,'Luminária de mesa'),($3,$4,'Caderno pontilhado') ON CONFLICT DO NOTHING",
+      [fixtures.variant, fixtures.alpha, fixtures.otherVariant, fixtures.beta],
+    );
+    await client.query(
+      "INSERT INTO customers(id,organization_id,name) VALUES($1,$1,'Cliente demonstrativo Aurora'),($2,$2,'Cliente demonstrativo Cedro') ON CONFLICT DO NOTHING",
+      [fixtures.alpha, fixtures.beta],
+    );
+    await client.query(
+      `INSERT INTO variants(id,organization_id,sku,name,price_cents,available,product_id) VALUES
+      ($1,$2,'LMP-01','Luminária de mesa · areia',18900,10,$1),($3,$4,'CAD-01','Caderno pontilhado · musgo',4900,10,$3) ON CONFLICT DO NOTHING`,
       [fixtures.variant, fixtures.alpha, fixtures.otherVariant, fixtures.beta],
     );
   });

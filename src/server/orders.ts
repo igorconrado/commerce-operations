@@ -13,7 +13,13 @@ export async function reserve(principal: Principal | null, raw: unknown) {
   const input = reservationInput.safeParse(raw);
   if (!input.success) throw new DomainError("INVALID_INPUT");
   const { variantId, quantity, key } = input.data;
-  const hash = fingerprint(principal.id, variantId, quantity);
+  const customerId = input.data.customerId ?? principal.organizationId;
+  const hash = fingerprint(
+    principal.id,
+    variantId,
+    quantity,
+    customerId === principal.organizationId ? undefined : customerId,
+  );
   return transaction(async (client) => {
     // Collisions only serialize unrelated commands; uniqueness remains enforced in SQL.
     await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
@@ -32,6 +38,15 @@ export async function reserve(principal: Principal | null, raw: unknown) {
       );
       return result.rows[0];
     }
+    if (
+      !(
+        await client.query(
+          "SELECT id FROM customers WHERE organization_id=$1 AND id=$2",
+          [principal.organizationId, customerId],
+        )
+      ).rowCount
+    )
+      throw new DomainError("CUSTOMER_NOT_FOUND");
     const stock = await client.query(
       `UPDATE variants SET available=available-$3,version=version+1
       WHERE organization_id=$1 AND id=$2 AND available >= $3 RETURNING *`,
@@ -40,8 +55,8 @@ export async function reserve(principal: Principal | null, raw: unknown) {
     if (!stock.rows[0]) throw new DomainError("STOCK_UNAVAILABLE");
     const id = randomUUID();
     const { rows } = await client.query(
-      `INSERT INTO orders(id,organization_id,actor_id,variant_id,quantity,unit_price_cents,status)
-      VALUES($1,$2,$3,$4,$5,$6,'reserved') RETURNING *`,
+      `INSERT INTO orders(id,organization_id,actor_id,variant_id,quantity,unit_price_cents,status,customer_id)
+      VALUES($1,$2,$3,$4,$5,$6,'reserved',$7) RETURNING *`,
       [
         id,
         principal.organizationId,
@@ -49,6 +64,7 @@ export async function reserve(principal: Principal | null, raw: unknown) {
         variantId,
         quantity,
         stock.rows[0].price_cents,
+        customerId,
       ],
     );
     await client.query("INSERT INTO idempotency VALUES($1,$2,$3,$4)", [
@@ -100,6 +116,15 @@ export async function catalog(principal: Principal | null) {
   return (
     await pool.query(
       "SELECT * FROM variants WHERE organization_id=$1 ORDER BY sku LIMIT 50",
+      [principal.organizationId],
+    )
+  ).rows;
+}
+export async function customers(principal: Principal | null) {
+  if (!principal) throw new DomainError("UNAUTHENTICATED");
+  return (
+    await pool.query(
+      "SELECT id,name FROM customers WHERE organization_id=$1 ORDER BY name,id LIMIT 50",
       [principal.organizationId],
     )
   ).rows;
