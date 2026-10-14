@@ -56,10 +56,10 @@ npm run build
 npx playwright install chromium
 npm run test:e2e
 npm audit --omit=dev
-node scripts/audit-dependencies.mjs
+npm audit --audit-level=low
 ```
 
-Tests require a database name ending in `_test` and truncate only that dedicated database. E2E follows integration so fixtures exist. CI supplies its own disposable PostgreSQL service via `DATABASE_URL`. Never point tests at valuable data. The development audit has one explicitly documented unpatched transitive advisory; see [security](docs/security.md).
+Tests require a database name ending in `_test` and truncate only that dedicated database. E2E follows integration so fixtures exist. CI supplies its own disposable PostgreSQL service via `DATABASE_URL`. Never point tests at valuable data. Both production and development dependency audits must pass without exceptions; see [security](docs/security.md).
 
 ## Architecture and contracts
 

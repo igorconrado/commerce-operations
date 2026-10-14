@@ -19,7 +19,7 @@ Clean-tree database rerun at commit `f32f07a9f0fd7d51d1d1e15e1e51df917e42d9a6`: 
 
 Docker: initial named pipe absent; after starting Docker Desktop, `docker info` did not complete. That individual diagnostic process was stopped. No existing containers or user data were deleted. Native PostgreSQL provided an independent test environment. Container build/execution remains a separate CI/local boundary.
 
-Dependency audit: production audit clean at inspection; full development audit contains a documented unpatched braces advisory. See [security](security.md), including the narrow exception. This is not an all-dependencies-clean claim.
+Dependency audit: the initial development graph contained an unpatched braces advisory. Replacing the Next ESLint preset with maintained compatible TypeScript/React Hooks plugins removed that dependency chain. The final full audit reports zero advisories; no allowlist remains. See [security](security.md).
 
 ## Methods and limitations
 
