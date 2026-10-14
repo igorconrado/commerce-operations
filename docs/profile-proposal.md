@@ -34,6 +34,9 @@ statically validated proposal; no AWS operation claim is made.
 A standalone Next.js/Python review workflow with LangGraph checkpoints, restricted
 MCP tools and human decisions bound to exact actions and context versions.
 Tests provoke process failure after a sandbox effect and verify idempotent recovery.
+New-effect authorization rechecks the original approver; cancelled attempts have
+a reconciliation-only path, and durable worker retry bounds prevent failed work
+from starving later cases.
 The 60-case synthetic evaluation covers deterministic policy and controlled effects;
 real-model quality and subjective human scoring are explicitly pending.
 
