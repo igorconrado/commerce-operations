@@ -63,6 +63,7 @@ jobs:
           docker stop commerce-smoke
       - name: Restore a real PostgreSQL backup into an isolated database
         run: |
+          node --import tsx scripts/prepare-restore.ts
           docker exec ${{ job.services.postgres.id }} pg_dump -U commerce -Fc commerce_test > .tmp/backup.dump
           docker exec ${{ job.services.postgres.id }} createdb -U commerce commerce_restore_test
           docker exec -i ${{ job.services.postgres.id }} pg_restore -U commerce -d commerce_restore_test < .tmp/backup.dump
