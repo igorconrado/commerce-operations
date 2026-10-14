@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-10-14T22:00:34.584Z",
+  "source": "/commerce_test",
+  "target": "/commerce_restore_test",
+  "organizations": {
+    "count": 2,
+    "matched": true
+  },
+  "users": {
+    "count": 3,
+    "matched": true
+  },
+  "variants": {
+    "count": 2,
+    "matched": true
+  },
+  "orders": {
+    "count": 5,
+    "matched": true
+  },
+  "idempotency": {
+    "count": 5,
+    "matched": true
+  },
+  "stock_movements": {
+    "count": 7,
+    "matched": true
+  },
+  "outbox": {
+    "count": 7,
+    "matched": true
+  },
+  "payment_inbox": {
+    "count": 0,
+    "matched": true
+  },
+  "payments": {
+    "count": 0,
+    "matched": true
+  },
+  "payment_commands": {
+    "count": 0,
+    "matched": true
+  },
+  "audit_log": {
+    "count": 7,
+    "matched": true
+  }
+}
