@@ -78,7 +78,9 @@ test("100 concurrent reservations against 10 units commit exactly 10 complete ef
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
-  } catch {}
+  } catch {
+    // Before the first commit, the report explicitly retains "uncommitted".
+  }
   await writeFile(
     ".tmp/reports/concurrency.json",
     JSON.stringify(
