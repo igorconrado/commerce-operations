@@ -1,5 +1,11 @@
 # Verification record
 
+## Lifecycle increment — 2026-10-14
+
+Seven unit tests and twelve real-PostgreSQL integration scenarios passed locally (six reservation tests plus six lifecycle tests). Lifecycle checks cover competing confirmation/cancellation, confirmation/expiration under the database clock, duplicate and delayed payment events, payload reuse conflicts, late-payment exceptions, authorization and webhook signature/freshness failures. Four desktop/mobile browser scenarios passed, including cancellation and observed stock restoration. Types, lint and production build passed.
+
+The first increment was merged through [PR #1](https://github.com/igorconrado/commerce-operations/pull/1), merge `4f557f66bd363e7ac46f8b0069abd7b369fc140b`, after [CI success](https://github.com/igorconrado/commerce-operations/actions/runs/38643033066). CI performed clean npm installation, Node 24 checks, PostgreSQL integration, browser tests, full dependency audit, history secret scan and Docker image build. Image runtime smoke/restore are not implied by that build.
+
 ## First reservation slice — 2026-10-14
 
 Environment: Windows host, Node 25.4.0, native PostgreSQL 18.4 launched through pinned embedded-postgres 18.4.0-beta.17. CI is configured separately for Node 24 and a PostgreSQL 18.4 service. The initial runs occurred before the first feature commit and are not mislabeled as clean-commit benchmarks.

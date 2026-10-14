@@ -37,6 +37,12 @@ test("login, reserve, reload and role restriction reach the real database", asyn
       path: `.tmp/${test.info().project.name}-operations.png`,
       fullPage: true,
     });
+    const latest = page.locator("tbody tr").first();
+    await latest.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await expect(
+      page.getByText("Reserva cancelada e estoque liberado."),
+    ).toBeVisible();
+    await expect(page.locator(".stock-number strong")).toHaveText("10");
     await page.getByRole("button", { name: "Sair", exact: true }).click();
     await page.getByLabel("E-mail", { exact: true }).fill("viewer@aurora.test");
     await page

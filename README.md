@@ -83,8 +83,8 @@ The initial modular monolith runs the Node GraphQL adapter inside Next route han
 
 ## Implemented versus planned
 
-Implemented: reservation vertical slice, one variant line per order, one warehouse represented by available balance, two organizations, operator/viewer sessions, audit/movement/outbox persistence, SQL invariants, responsive UI, local tests and CI configuration.
+Implemented: confirmation/cancellation with optimistic versions, database-clock expiration command, HMAC-authenticated durable payment inbox, duplicate/late-event handling, operational exceptions, reservation vertical slice, one variant line per order, one warehouse represented by available balance, two organizations, operator/viewer sessions, audit/movement/outbox persistence, SQL invariants, responsive UI, local tests and CI configuration.
 
-Planned: customer management, full product/variant editing, multi-line orders, confirmation/cancellation/expiry, payment simulator, inbox, reconciliation, Redis/BullMQ recovery, operational failure dashboard, backup/restore, comparative benchmark, AWS/Terraform/OIDC, Workbench integration. Outbox recording is not delivery. A reservation's expiration timestamp is stored but not yet acted upon; this increment does not automatically release reservations.
+Planned: customer management, full product/variant editing, multi-line orders, payment simulator, reconciliation, Redis/BullMQ recovery, operational failure dashboard, backup/restore, comparative benchmark, AWS/Terraform/OIDC, Workbench integration. Outbox recording is not delivery. Run `node --import tsx scripts/run-local.ts --import tsx scripts/expire.ts` to expire due reservations. Continuous scheduling is pending. Configure a local `PAYMENT_WEBHOOK_SECRET` of at least 32 characters for `/api/payments/webhook`; see [lifecycle contract](docs/adr/002-order-lifecycle.md).
 
 [Program dependencies](docs/program.md) · [Interface rationale](docs/design.md) · [Security boundaries](docs/security.md)

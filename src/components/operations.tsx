@@ -13,17 +13,19 @@ type Order = {
   quantity: number;
   unitPriceCents: number;
   status: string;
+  version: number;
 };
 type Snapshot = {
   viewer: { role: string; organizationId: string } | null;
   catalog: Variant[];
+  exceptions: { id: string; orderId: string; reason: string }[];
   orders: { nodes: Order[]; hasNextPage: boolean; endCursor: string | null };
 };
 const money = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     cents / 100,
   );
-const query = `query Snapshot($after:ID){viewer{role organizationId} catalog{id sku name priceCents available} orders(first:20,after:$after){nodes{id quantity unitPriceCents status} hasNextPage endCursor}}`;
+const query = `query Snapshot($after:ID){viewer{role organizationId} catalog{id sku name priceCents available} orders(first:20,after:$after){nodes{id quantity unitPriceCents status version} hasNextPage endCursor} exceptions{id orderId reason}}`;
 async function graphql<T>(query: string, variables: object = {}): Promise<T> {
   const response = await fetch("/api/graphql", {
     method: "POST",
@@ -36,6 +38,9 @@ async function graphql<T>(query: string, variables: object = {}): Promise<T> {
   return result.data;
 }
 const messages: Record<string, string> = {
+  VERSION_CONFLICT: "Este pedido mudou. Atualize os dados antes de decidir.",
+  RESERVATION_EXPIRED: "Esta reserva já venceu. Atualize os dados.",
+  INVALID_TRANSITION: "O pedido já foi encerrado.",
   STOCK_UNAVAILABLE:
     "Estoque insuficiente. Atualize os dados e ajuste a quantidade.",
   IDEMPOTENCY_CONFLICT:
@@ -149,6 +154,33 @@ export function Operations() {
       await refresh(after);
     } catch {
       setError("Não foi possível atualizar. Tente novamente.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function changeOrder(order: Order, action: "confirm" | "cancel") {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await graphql(
+        "mutation Transition($input:TransitionInput!){transition(input:$input){id status version}}",
+        {
+          input: { orderId: order.id, expectedVersion: order.version, action },
+        },
+      );
+      setNotice(
+        action === "confirm"
+          ? "Pedido confirmado."
+          : "Reserva cancelada e estoque liberado.",
+      );
+      await refresh();
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      setError(
+        messages[code] ??
+          "Resultado não confirmado. Atualize os dados antes de tentar novamente.",
+      );
     } finally {
       setBusy(false);
     }
@@ -352,7 +384,7 @@ export function Operations() {
                         <th>Pedido</th>
                         <th>Quantidade</th>
                         <th>Total</th>
-                        <th>Situação</th>
+                        <th>Situação e ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -374,6 +406,25 @@ export function Operations() {
                                 )[o.status]
                               }
                             </span>
+                            {o.status === "reserved" &&
+                              data.viewer?.role === "operator" && (
+                                <div className="order-actions">
+                                  <button
+                                    className="quiet"
+                                    disabled={busy}
+                                    onClick={() => changeOrder(o, "confirm")}
+                                  >
+                                    Confirmar
+                                  </button>
+                                  <button
+                                    className="quiet"
+                                    disabled={busy}
+                                    onClick={() => changeOrder(o, "cancel")}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              )}
                           </td>
                         </tr>
                       ))}
@@ -391,6 +442,22 @@ export function Operations() {
                 </button>
               )}
             </section>
+            {data.exceptions.length > 0 && (
+              <section className="panel exceptions">
+                <p className="eyebrow">EXCEÇÕES OPERACIONAIS</p>
+                <h2>Precisam de revisão</h2>
+                <ul>
+                  {data.exceptions.map((item) => (
+                    <li key={item.id}>
+                      Pedido {item.orderId.slice(0, 8)}:{" "}
+                      {item.reason === "payment_after_release"
+                        ? "Pagamento recebido após liberação do estoque."
+                        : "Estado conflitante informado pelo pagamento."}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </>
         )}
         <div aria-live="polite">
