@@ -68,6 +68,39 @@ async function reserved() {
   const event = (await pendingDeliveries())[0];
   return { order, event };
 }
+test("delivery and recovery complete with only one application pool connection", async () => {
+  const { order, event } = await reserved();
+  const max = pool.options.max;
+  pool.options.max = 1;
+  try {
+    const lost: PaymentGateway = {
+      charge: async (input) => {
+        await gateway.charge(input);
+        throw new Error("response lost under pool pressure");
+      },
+      lookup: (key) => gateway.lookup(key),
+    };
+    await assert.rejects(
+      deliver(event.id, lost),
+      /response lost under pool pressure/,
+    );
+    await deliver(event.id, gateway);
+    assert.equal(
+      (await pool.query("SELECT status FROM orders WHERE id=$1", [order.id]))
+        .rows[0].status,
+      "confirmed",
+    );
+    assert.equal(
+      Number(
+        (await pool.query("SELECT count(*) FROM payment_simulator.charges"))
+          .rows[0].count,
+      ),
+      1,
+    );
+  } finally {
+    pool.options.max = max;
+  }
+});
 test("HTTP provider applies one charge; lost response forces lookup before settling", async () => {
   const { order, event } = await reserved();
   let lookups = 0;

@@ -5,6 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
+import type { PoolClient } from "pg";
 import { DomainError, type Principal } from "../domain/reservations";
 import { pool, transaction } from "./db";
 import { applyTransition, type OrderRecord } from "./lifecycle";
@@ -41,7 +42,7 @@ export function verifyWebhook(
     Buffer.from(signWebhook(body, timestamp, secret), "hex"),
   );
 }
-export async function receivePayment(raw: unknown) {
+export async function receivePayment(raw: unknown, client?: PoolClient) {
   const parsed = paymentEvent.safeParse(raw);
   if (!parsed.success) throw new DomainError("INVALID_INPUT");
   const event = parsed.data;
@@ -116,7 +117,7 @@ export async function receivePayment(raw: unknown) {
         );
     }
     return "applied";
-  });
+  }, client);
 }
 export async function exceptions(principal: Principal | null) {
   if (!principal) throw new DomainError("UNAUTHENTICATED");
