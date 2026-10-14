@@ -18,6 +18,12 @@ type Order = {
 type Snapshot = {
   viewer: { role: string; organizationId: string } | null;
   catalog: Variant[];
+  failedDeliveries: {
+    id: string;
+    orderId: string;
+    attempts: number;
+    error: string;
+  }[];
   exceptions: { id: string; orderId: string; reason: string }[];
   orders: { nodes: Order[]; hasNextPage: boolean; endCursor: string | null };
 };
@@ -25,7 +31,7 @@ const money = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     cents / 100,
   );
-const query = `query Snapshot($after:ID){viewer{role organizationId} catalog{id sku name priceCents available} orders(first:20,after:$after){nodes{id quantity unitPriceCents status version} hasNextPage endCursor} exceptions{id orderId reason}}`;
+const query = `query Snapshot($after:ID){viewer{role organizationId} catalog{id sku name priceCents available} orders(first:20,after:$after){nodes{id quantity unitPriceCents status version} hasNextPage endCursor} exceptions{id orderId reason} failedDeliveries{id orderId attempts error}}`;
 async function graphql<T>(query: string, variables: object = {}): Promise<T> {
   const response = await fetch("/api/graphql", {
     method: "POST",
@@ -180,6 +186,23 @@ export function Operations() {
       setError(
         messages[code] ??
           "Resultado não confirmado. Atualize os dados antes de tentar novamente.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function replayDelivery(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await graphql("mutation Replay($id:ID!){replay(id:$id)}", { id });
+      setNotice(
+        "Reprocessamento solicitado. O resultado anterior será consultado antes de uma nova ação.",
+      );
+      await refresh();
+    } catch {
+      setError(
+        "Não foi possível solicitar o reprocessamento. Atualize os dados.",
       );
     } finally {
       setBusy(false);
@@ -442,6 +465,29 @@ export function Operations() {
                 </button>
               )}
             </section>
+            {data.failedDeliveries.length > 0 && (
+              <section className="panel exceptions">
+                <p className="eyebrow">INTEGRAÇÕES</p>
+                <h2>Reprocessamento necessário</h2>
+                <ul>
+                  {data.failedDeliveries.map((item) => (
+                    <li key={item.id}>
+                      Pedido {item.orderId.slice(0, 8)} · {item.attempts}{" "}
+                      tentativas sem resultado confirmado.{" "}
+                      {data.viewer?.role === "operator" && (
+                        <button
+                          className="quiet"
+                          disabled={busy}
+                          onClick={() => replayDelivery(item.id)}
+                        >
+                          Reprocessar
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             {data.exceptions.length > 0 && (
               <section className="panel exceptions">
                 <p className="eyebrow">EXCEÇÕES OPERACIONAIS</p>
