@@ -1,5 +1,32 @@
 # Verification record
 
+## Native goal hardening — 2026-10-14
+
+Merged PRs [#10](https://github.com/igorconrado/commerce-operations/pull/10),
+[#11](https://github.com/igorconrado/commerce-operations/pull/11) and
+[#12](https://github.com/igorconrado/commerce-operations/pull/12) fix provider-response
+correlation, connection-pool starvation and off-screen operation feedback.
+Local backend validation: nine unit tests and 22 integration passes plus one
+explicit Redis skip, ESLint and TypeScript. A one-connection probe failed before
+the pool fix; the real HTTP response-loss/reconciliation regression passes after it.
+
+Final code [CI 38654869877](https://github.com/igorconrado/commerce-operations/actions/runs/38654869877)
+passed clean npm install, all 23 integration cases including real Redis, nine unit
+tests, four Chromium desktop/mobile flows, focused/in-viewport feedback assertions,
+build, full dependency/history audits, image build/runtime smoke and PostgreSQL
+restore. The tested PR merge revision is `f457ec2a585afced0daa119b7047e8e3280d3381`;
+source branch head `42b77f1`; published main merge `8395986`.
+
+The refreshed [recording](demo/commerce-flow.webm) comes from that CI artifact,
+not the old local server. Desktop/mobile captures were inspected. Native-device
+and spoken screen-reader tests were not performed. The
+[restore report](reports/restore-native-goal-2026-10-14.json) matches 11 tables,
+including nonempty inbox/payment/command data; the
+[concurrency rerun](reports/concurrency-native-goal-2026-10-14.json) retains the
+100-request/10-stock correctness experiment. Neither is a production capacity,
+offsite-disaster or general accessibility guarantee. Subsequent sections preserve
+the earlier evidence chronology and counts.
+
 ## Consolidated Commerce checks — 2026-10-14
 
 Local suite now passes 19 integration cases plus one explicit Redis skip, seven unit tests and four browser flows. Product/customer relationships and cross-tenant customer rejection are covered. The local helper was corrected to expand Windows file patterns and preserve Node's test-runner flag; the consolidated run explicitly reported all 20 integration cases, rather than relying on a shell's glob expansion.

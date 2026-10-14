@@ -8,6 +8,7 @@ The first increment lets an operator sign in, inspect stock, reserve units and r
 
 - [Evidence index across the portfolio](docs/evidence.md)
 - [Observed verification and limitations](docs/verification.md)
+- [Native goal audit and checkpoint](docs/portfolio-goal-checkpoint.md)
 - [Atomic reservation decision](docs/adr/001-atomic-reservation.md)
 - Demo: local instructions below. No public deployment.
 
@@ -73,7 +74,7 @@ flowchart LR
   PG --- Records[Orders + movements + idempotency + audit + outbox]
 ```
 
-The initial modular monolith runs the Node GraphQL adapter inside Next route handlers. Domain input/policy, use cases and SQL transaction boundaries are separate modules. A later worker is a separate process, not a new service boundary. PostgreSQL is the source of truth. No Redis correctness dependency exists in the first slice.
+The modular monolith runs the Node GraphQL adapter inside Next route handlers. Domain input/policy, use cases and SQL transaction boundaries are separate modules. The delivery worker is a separate process. PostgreSQL is the source of truth; Redis schedules delivery but cannot erase durable work. The [complete architecture](docs/architecture.md) includes the worker and HTTP simulator.
 
 - GraphQL schema: `src/server/graphql.ts`; `ReserveInput` includes variant ID, integer quantity 1–100 and caller-generated idempotency key (8–128 characters). Organization and actor come from the session.
 - Errors: `UNAUTHENTICATED`, `FORBIDDEN`, `INVALID_INPUT`, `STOCK_UNAVAILABLE`, `IDEMPOTENCY_CONFLICT`. Missing/cross-tenant stock uses the same error to avoid disclosure.
@@ -87,6 +88,6 @@ Customer and product records are organization-scoped. The reservation UI selects
 
 Implemented: separate HTTP payment simulator, durable uncertain-result reconciliation, Redis/BullMQ dispatch, bounded retries and authorized replay dashboard, confirmation/cancellation with optimistic versions, database-clock expiration command, HMAC-authenticated durable payment inbox, duplicate/late-event handling, operational exceptions, reservation vertical slice, one variant line per order, one warehouse represented by available balance, two organizations, operator/viewer sessions, audit/movement/outbox persistence, SQL invariants, responsive UI, local tests and CI configuration.
 
-Planned: customer management, full product/variant editing, multi-line orders, backup/restore, comparative benchmark, AWS/Terraform/OIDC, Workbench integration. Outbox recording is not delivery. Run `node --import tsx scripts/run-local.ts --import tsx scripts/expire.ts` to expire due reservations. The worker continuously schedules expiration; see [local worker runbook](docs/runbooks/local-worker.md). Configure a local `PAYMENT_WEBHOOK_SECRET` of at least 32 characters for `/api/payments/webhook`; see [lifecycle contract](docs/adr/002-order-lifecycle.md).
+Also verified: database backup/restore, bounded correct-version query comparison, response correlation, recovery with a one-connection application pool, clean CI installation and container runtime. Terraform/AWS/OIDC is a statically validated proposal, not a deployment. Customer/catalog administration, multi-line checkout, cloud deployment, full HTTP capacity measurement and cross-project integration are outside the delivered demonstration. Run `node --import tsx scripts/run-local.ts --import tsx scripts/expire.ts` to expire due reservations. The worker continuously schedules expiration; see [local worker runbook](docs/runbooks/local-worker.md). Configure a local `PAYMENT_WEBHOOK_SECRET` of at least 32 characters for `/api/payments/webhook`; see [lifecycle contract](docs/adr/002-order-lifecycle.md).
 
 [Program dependencies](docs/program.md) · [Interface rationale](docs/design.md) · [Security boundaries](docs/security.md)
