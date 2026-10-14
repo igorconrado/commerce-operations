@@ -3,6 +3,8 @@ import { GraphQLError, visit, type ValidationRule } from "graphql";
 import { depthLimit } from "@graphile/depth-limit";
 import { authenticate, trustedOrigin } from "./identity";
 import { catalog, listOrders, reserve } from "./orders";
+import { transition } from "./lifecycle";
+import { exceptions } from "./payments";
 import { DomainError, type Principal } from "../domain/reservations";
 import { randomUUID } from "node:crypto";
 export const typeDefs = /* GraphQL */ `
@@ -37,13 +39,25 @@ export const typeDefs = /* GraphQL */ `
     quantity: Int!
     key: String!
   }
+  input TransitionInput {
+    orderId: ID!
+    expectedVersion: Int!
+    action: String!
+  }
+  type OperationalException {
+    id: ID!
+    orderId: ID!
+    reason: String!
+  }
   type Query {
     viewer: Viewer
     catalog: [Variant!]!
     orders(first: Int! = 20, after: ID): OrderConnection!
+    exceptions: [OperationalException!]!
   }
   type Mutation {
     reserve(input: ReserveInput!): Order!
+    transition(input: TransitionInput!): Order!
   }
 `;
 type Context = { principal: Principal | null };
@@ -99,11 +113,15 @@ export const yoga = createYoga({
         viewer: (_parent, _args, ctx) => ctx.principal,
         catalog: (_parent, _args, ctx) => catalog(ctx.principal),
         orders: (_parent, args, ctx) => listOrders(ctx.principal, args),
+        exceptions: (_parent, _args, ctx) => exceptions(ctx.principal),
       },
       Mutation: {
         reserve: (_parent, args, ctx) => reserve(ctx.principal, args.input),
+        transition: (_parent, args, ctx) =>
+          transition(ctx.principal, args.input),
       },
       Variant: { priceCents: (row) => row.price_cents },
+      OperationalException: { orderId: (row) => row.order_id },
       Order: {
         variantId: (row) => row.variant_id,
         unitPriceCents: (row) => row.unit_price_cents,

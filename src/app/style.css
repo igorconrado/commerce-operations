@@ -7,6 +7,35 @@
   --white: #fff;
   --accent: #d4ef9e;
 }
+.order-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.exceptions {
+  margin-top: 20px;
+  border-left: 4px solid #9c5700;
+}
+@media (max-width: 700px) {
+  .orders table {
+    font-size: 12px;
+  }
+  .orders th {
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+  .orders td,
+  .orders th {
+    padding: 10px 4px;
+  }
+  .order-actions {
+    flex-direction: column;
+  }
+  .order-actions button {
+    font-size: 11px;
+    padding: 6px;
+  }
+}
 * {
   box-sizing: border-box;
 }
