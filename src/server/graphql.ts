@@ -2,7 +2,7 @@ import { createSchema, createYoga } from "graphql-yoga";
 import { GraphQLError, visit, type ValidationRule } from "graphql";
 import { depthLimit } from "@graphile/depth-limit";
 import { authenticate, trustedOrigin } from "./identity";
-import { catalog, listOrders, reserve } from "./orders";
+import { catalog, listOrders, reserve, customers } from "./orders";
 import { transition } from "./lifecycle";
 import { exceptions } from "./payments";
 import { failedDeliveries, replay } from "./delivery";
@@ -10,6 +10,10 @@ import { DomainError, type Principal } from "../domain/reservations";
 import { randomUUID } from "node:crypto";
 import { createVariantLoader } from "./loaders";
 export const typeDefs = /* GraphQL */ `
+  type Customer {
+    id: ID!
+    name: String!
+  }
   type FailedDelivery {
     id: ID!
     orderId: ID!
@@ -22,6 +26,7 @@ export const typeDefs = /* GraphQL */ `
     role: String!
   }
   type Variant {
+    productId: ID!
     id: ID!
     sku: String!
     name: String!
@@ -30,6 +35,7 @@ export const typeDefs = /* GraphQL */ `
     version: Int!
   }
   type Order {
+    customerId: ID!
     variant: Variant
     id: ID!
     variantId: ID!
@@ -44,6 +50,7 @@ export const typeDefs = /* GraphQL */ `
     endCursor: ID
   }
   input ReserveInput {
+    customerId: ID
     variantId: ID!
     quantity: Int!
     key: String!
@@ -59,6 +66,7 @@ export const typeDefs = /* GraphQL */ `
     reason: String!
   }
   type Query {
+    customers: [Customer!]!
     failedDeliveries: [FailedDelivery!]!
     viewer: Viewer
     catalog: [Variant!]!
@@ -127,6 +135,7 @@ export const yoga = createYoga({
     typeDefs,
     resolvers: {
       Query: {
+        customers: (_parent, _args, ctx) => customers(ctx.principal),
         failedDeliveries: (_parent, _args, ctx) =>
           failedDeliveries(ctx.principal),
         viewer: (_parent, _args, ctx) => ctx.principal,
@@ -140,13 +149,17 @@ export const yoga = createYoga({
         transition: (_parent, args, ctx) =>
           transition(ctx.principal, args.input),
       },
-      Variant: { priceCents: (row) => row.price_cents },
+      Variant: {
+        priceCents: (row) => row.price_cents,
+        productId: (row) => row.product_id,
+      },
       OperationalException: { orderId: (row) => row.order_id },
       FailedDelivery: {
         orderId: (row) => row.aggregate_id,
         error: (row) => row.last_error,
       },
       Order: {
+        customerId: (row) => row.customer_id,
         variant: (row, _args, ctx) => ctx.variants.load(row.variant_id),
         variantId: (row) => row.variant_id,
         unitPriceCents: (row) => row.unit_price_cents,

@@ -1,5 +1,13 @@
 # Verification record
 
+## Consolidated Commerce checks — 2026-10-14
+
+Local suite now passes 19 integration cases plus one explicit Redis skip, seven unit tests and four browser flows. Product/customer relationships and cross-tenant customer rejection are covered. The local helper was corrected to expand Windows file patterns and preserve Node's test-runner flag; the consolidated run explicitly reported all 20 integration cases, rather than relying on a shell's glob expansion.
+
+The durable-worker [CI run](https://github.com/igorconrado/commerce-operations/actions/runs/38644281841) passed with **real Redis**, queue namespace destruction/rebuild, image runtime health smoke and PostgreSQL backup/restore comparison. This validates those operations on the ephemeral Linux runner, not local Docker or AWS. The restored-table report is included with the CI artifact.
+
+The batching [PR #5](https://github.com/igorconrado/commerce-operations/pull/5) and infrastructure [PR #6](https://github.com/igorconrado/commerce-operations/pull/6) passed CI. PR #4 was closed when its temporary base branch was deleted; #5 is the actual replacement, not an additional implementation.
+
 ## Durable payment increment — 2026-10-14
 
 Four additional local integration cases passed with a real HTTP simulator and PostgreSQL: response lost after provider effect, process killed with exit code 86 after provider effect before checkpoint, bounded retries with authorized replay, and cancellation while outcome is uncertain. Recovery produced one provider charge, not two. The real Redis queue-loss case is explicitly skipped locally because no REDIS_URL is available. Docker remained unavailable and WSL returned permission denied; neither boundary was bypassed. CI supplies its own Redis 8.10.2 service and must pass that case before merge.

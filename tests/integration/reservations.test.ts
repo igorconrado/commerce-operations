@@ -186,6 +186,19 @@ test("historical prices survive catalog edits; pagination remains bounded", asyn
     1,
   );
 });
+test("customer references enforce tenant boundaries and preserve legacy default fingerprints", async () => {
+  await assert.rejects(
+    reserve(operator, { ...input, customerId: fixtures.beta }),
+    /CUSTOMER_NOT_FOUND/,
+  );
+  const original = await reserve(operator, input);
+  const repeated = await reserve(operator, {
+    ...input,
+    customerId: fixtures.alpha,
+  });
+  assert.equal(original.id, repeated.id);
+  assert.equal(original.customer_id, fixtures.alpha);
+});
 async function request(query: string, cookie = "") {
   return graphqlRequest(
     new Request(`${origin}/api/graphql`, {

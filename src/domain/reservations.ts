@@ -7,6 +7,7 @@ export class DomainError extends Error {
 }
 export const reservationInput = z
   .object({
+    customerId: z.uuid().optional(),
     variantId: z.uuid(),
     quantity: z.number().int().min(1).max(100),
     key: z
@@ -31,9 +32,10 @@ export function fingerprint(
   actorId: string,
   variantId: string,
   quantity: number,
+  customerId?: string,
 ) {
   return createHash("sha256")
-    .update(JSON.stringify({ actorId, variantId, quantity }))
+    .update(JSON.stringify({ actorId, variantId, quantity, customerId }))
     .digest("hex");
 }
 export const pageInput = z.object({
