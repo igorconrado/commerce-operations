@@ -10,6 +10,28 @@ const gateway = new HttpPaymentGateway(
 );
 const queue = createQueue();
 const worker = createWorker(gateway);
+worker.on("active", (job) =>
+  console.info(
+    JSON.stringify({
+      event: "delivery.started",
+      traceId: job.id,
+      span: "payment.delivery",
+    }),
+  ),
+);
+worker.on("completed", (job) =>
+  console.info(
+    JSON.stringify({
+      event: "delivery.completed",
+      traceId: job.id,
+      span: "payment.delivery",
+      durationMs:
+        job.finishedOn && job.processedOn
+          ? job.finishedOn - job.processedOn
+          : null,
+    }),
+  ),
+);
 const log = (event: string, error?: Error) =>
   console.info(JSON.stringify({ event, error: error?.name }));
 worker.on("error", (error) => log("worker.error", error));

@@ -8,6 +8,7 @@ import { migrate } from "../../scripts/migrate";
 import { seed, fixtures } from "../../scripts/seed";
 import { reserve, catalog, listOrders } from "../../src/server/orders";
 import { graphqlRequest } from "../../src/server/graphql";
+import { GET as metrics } from "../../src/app/api/metrics/route";
 import {
   POST as login,
   DELETE as logout,
@@ -231,6 +232,20 @@ test("HTTP session, GraphQL mutation, logout and CSRF boundaries use real Postgr
     )
   ).json();
   assert.equal(result.data.reserve.status, "reserved");
+  assert.equal(
+    (await metrics(new Request(`${origin}/api/metrics`))).status,
+    403,
+  );
+  assert.equal(
+    (
+      await (
+        await metrics(
+          new Request(`${origin}/api/metrics`, { headers: { cookie } }),
+        )
+      ).json()
+    ).orders,
+    1,
+  );
   const attack = await graphqlRequest(
     new Request(`${origin}/api/graphql`, {
       method: "POST",
