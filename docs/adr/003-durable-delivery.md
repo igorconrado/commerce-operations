@@ -8,6 +8,8 @@ The synthetic provider runs in a separate HTTP process. Its isolated schema shar
 
 The inbox handles duplicate provider responses. Terminal recording may crash after inbox handling and before command settlement; replaying the same provider event then becomes a no-op before settlement completes. Five failures remove a command from automatic dispatch; operators can request an audited replay in the UI. Viewers and other organizations cannot replay it.
 
+Both charge and lookup responses must match the durable command's order and organization before entering the inbox. A valid schema alone does not establish correlation. A mismatch preserves the unknown command, increments the delivery failure count and leaves both orders untouched; a later correctly correlated response can recover. The synthetic response contract does not include amount/currency, so this validation does not claim independent monetary reconciliation.
+
 Concurrency caveat: cancellation can race with an already-issued external payment. The system preserves a late-payment exception rather than pretending the external effect was undone. No refund is automatic.
 
 Validation: real HTTP provider; response-loss adapter after a successful provider call; subprocess exit code 86 after the external effect before local checkpoint; retry budget/authorization; cancellation during uncertainty. A real Redis/BullMQ test deletes only its unique test queue namespace, rebuilds jobs from PostgreSQL and verifies one charge. It is skipped locally when REDIS_URL is absent, mandatory in CI.
