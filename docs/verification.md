@@ -1,5 +1,11 @@
 # Verification record
 
+## Durable payment increment — 2026-10-14
+
+Four additional local integration cases passed with a real HTTP simulator and PostgreSQL: response lost after provider effect, process killed with exit code 86 after provider effect before checkpoint, bounded retries with authorized replay, and cancellation while outcome is uncertain. Recovery produced one provider charge, not two. The real Redis queue-loss case is explicitly skipped locally because no REDIS_URL is available. Docker remained unavailable and WSL returned permission denied; neither boundary was bypassed. CI supplies its own Redis 8.10.2 service and must pass that case before merge.
+
+The lifecycle increment [PR #2](https://github.com/igorconrado/commerce-operations/pull/2) was merged after [CI success](https://github.com/igorconrado/commerce-operations/actions/runs/38643546596).
+
 ## Lifecycle increment — 2026-10-14
 
 Seven unit tests and twelve real-PostgreSQL integration scenarios passed locally (six reservation tests plus six lifecycle tests). Lifecycle checks cover competing confirmation/cancellation, confirmation/expiration under the database clock, duplicate and delayed payment events, payload reuse conflicts, late-payment exceptions, authorization and webhook signature/freshness failures. Four desktop/mobile browser scenarios passed, including cancellation and observed stock restoration. Types, lint and production build passed.

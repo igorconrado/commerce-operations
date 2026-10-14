@@ -1,5 +1,10 @@
 name: commerce-operations
 services:
+  redis:
+    image: redis:8.10.2
+    ports: ["127.0.0.1:6388:6379"]
+    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    volumes: ["redis-data:/data"]
   db:
     image: postgres:18.4
     environment:
@@ -23,4 +28,5 @@ services:
     ports: ["127.0.0.1:55441:5432"]
     tmpfs: [/var/lib/postgresql]
 volumes:
+  redis-data:
   commerce-data:
