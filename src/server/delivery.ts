@@ -25,14 +25,14 @@ export async function deliver(
     ).rows[0].acquired;
     if (!acquired) return;
     const event = (
-      await pool.query(
+      await lock.query(
         "SELECT * FROM outbox WHERE id=$1 AND processed_at IS NULL",
         [outboxId],
       )
     ).rows[0];
     if (!event) return;
     if (event.type !== "order.reserved") {
-      await pool.query("UPDATE outbox SET processed_at=now() WHERE id=$1", [
+      await lock.query("UPDATE outbox SET processed_at=now() WHERE id=$1", [
         outboxId,
       ]);
       return;
@@ -67,9 +67,9 @@ export async function deliver(
         },
         reconcile: !!previous,
       } satisfies Prepared;
-    });
+    }, lock);
     if (!prepared) {
-      await pool.query("UPDATE outbox SET processed_at=now() WHERE id=$1", [
+      await lock.query("UPDATE outbox SET processed_at=now() WHERE id=$1", [
         outboxId,
       ]);
       return;
@@ -81,7 +81,7 @@ export async function deliver(
       // Authoritative not-found permits an idempotent retry using the original key.
       if (!result) {
         const eligible = (
-          await pool.query(
+          await lock.query(
             "SELECT id FROM orders WHERE id=$1 AND status='reserved' AND expires_at>clock_timestamp()",
             [prepared.charge.orderId],
           )
@@ -96,7 +96,7 @@ export async function deliver(
               "UPDATE outbox SET processed_at=now() WHERE id=$1",
               [outboxId],
             );
-          });
+          }, lock);
           return;
         }
         result = await gateway.charge(prepared.charge);
@@ -108,7 +108,7 @@ export async function deliver(
         response.organizationId !== prepared.charge.organizationId
       )
         throw new Error("PROVIDER_RESPONSE_MISMATCH");
-      await receivePayment(response);
+      await receivePayment(response, lock);
       await transaction(async (client) => {
         await client.query(
           "UPDATE payment_commands SET status='settled' WHERE order_id=$1",
@@ -118,19 +118,29 @@ export async function deliver(
           "UPDATE outbox SET processed_at=now(),last_error=NULL WHERE id=$1",
           [outboxId],
         );
-      });
+      }, lock);
     } catch (error) {
-      await pool.query(
+      await lock.query(
         "UPDATE outbox SET attempts=attempts+1,last_error='PROVIDER_RESULT_UNCERTAIN',available_at=now()+interval '5 seconds' WHERE id=$1",
         [outboxId],
       );
       throw error;
     }
   } finally {
-    await lock.query("SELECT pg_advisory_unlock(hashtextextended($1,1))", [
-      outboxId,
-    ]);
-    lock.release();
+    try {
+      await lock.query("SELECT pg_advisory_unlock(hashtextextended($1,1))", [
+        outboxId,
+      ]);
+      lock.release();
+    } catch {
+      lock.release(true);
+      console.error(
+        JSON.stringify({
+          event: "delivery.lock_connection_discarded",
+          outboxId,
+        }),
+      );
+    }
   }
 }
 export async function pendingDeliveries() {

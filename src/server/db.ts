@@ -11,8 +11,9 @@ export const pool =
 if (process.env.NODE_ENV !== "production") globalDb.commercePool = pool;
 export async function transaction<T>(
   run: (client: pg.PoolClient) => Promise<T>,
+  existingClient?: pg.PoolClient,
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = existingClient ?? (await pool.connect());
   try {
     await client.query("BEGIN");
     const result = await run(client);
@@ -22,6 +23,6 @@ export async function transaction<T>(
     await client.query("ROLLBACK");
     throw error;
   } finally {
-    client.release();
+    if (!existingClient) client.release();
   }
 }
