@@ -8,6 +8,7 @@ import { exceptions } from "./payments";
 import { failedDeliveries, replay } from "./delivery";
 import { DomainError, type Principal } from "../domain/reservations";
 import { randomUUID } from "node:crypto";
+import { createVariantLoader } from "./loaders";
 export const typeDefs = /* GraphQL */ `
   type FailedDelivery {
     id: ID!
@@ -29,6 +30,7 @@ export const typeDefs = /* GraphQL */ `
     version: Int!
   }
   type Order {
+    variant: Variant
     id: ID!
     variantId: ID!
     quantity: Int!
@@ -69,14 +71,20 @@ export const typeDefs = /* GraphQL */ `
     transition(input: TransitionInput!): Order!
   }
 `;
-type Context = { principal: Principal | null };
+type Context = {
+  principal: Principal | null;
+  variants: ReturnType<typeof createVariantLoader>;
+};
 export const yoga = createYoga({
   logging: false,
   graphqlEndpoint: "/api/graphql",
   graphiql: false,
   batching: false,
   cors: false,
-  context: async ({ request }) => ({ principal: await authenticate(request) }),
+  context: async ({ request }) => {
+    const principal = await authenticate(request);
+    return { principal, variants: createVariantLoader(principal) };
+  },
   plugins: [
     {
       onValidate({
@@ -139,6 +147,7 @@ export const yoga = createYoga({
         error: (row) => row.last_error,
       },
       Order: {
+        variant: (row, _args, ctx) => ctx.variants.load(row.variant_id),
         variantId: (row) => row.variant_id,
         unitPriceCents: (row) => row.unit_price_cents,
       },
