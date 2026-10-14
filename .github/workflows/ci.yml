@@ -46,6 +46,17 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Record the verified browser flow
+        run: |
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3100 > .tmp/demo-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3100/api/health; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3100/api/health
+          node --import tsx scripts/record-demo.ts
       - run: npm audit --omit=dev --audit-level=low
       - run: npm audit --audit-level=low
       - name: Scan repository history for secrets
@@ -74,6 +85,7 @@ jobs:
           name: verification-${{ github.sha }}
           path: |
             .tmp/reports/
+            .tmp/demo/commerce-flow.webm
             .tmp/*-operations.png
             test-results/
           include-hidden-files: true

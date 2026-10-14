@@ -81,9 +81,15 @@ test("keyboard login, network error and retry preserve the reservation", async (
   await expect(
     page.getByRole("alert").filter({ hasText: "mesma tentativa" }),
   ).toContainText("mesma tentativa");
+  await expect(page.locator(".operation-feedback")).toBeFocused();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "mesma tentativa" }),
+  ).toBeInViewport();
   await page.unroute("**/api/graphql");
   await page
     .getByRole("button", { name: "Consultar tentativa anterior" })
     .click();
   await expect(page.getByText(/Reserva .* registrada/)).toBeVisible();
+  await expect(page.locator(".operation-feedback")).toBeFocused();
+  await expect(page.getByText(/Reserva .* registrada/)).toBeInViewport();
 });

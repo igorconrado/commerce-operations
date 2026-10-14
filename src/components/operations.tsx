@@ -1,6 +1,12 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 type Variant = {
   id: string;
   sku: string;
@@ -58,11 +64,15 @@ const messages: Record<string, string> = {
   UNAUTHENTICATED: "Sua sessão expirou. Entre novamente.",
 };
 export function Operations() {
+  const feedback = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<Snapshot | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (error || notice) feedback.current?.focus();
+  }, [error, notice]);
   const [email, setEmail] = useState("operator@aurora.test");
   const [password, setPassword] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -242,6 +252,18 @@ export function Operations() {
       setBusy(false);
     }
   }
+  const operationFeedback = (
+    <div ref={feedback} tabIndex={-1} className="operation-feedback">
+      <div aria-live="polite">
+        {notice && <p className="notice">{notice}</p>}
+      </div>
+      {error && (
+        <div className="error" role="alert">
+          {error}
+        </div>
+      )}
+    </div>
+  );
   return (
     <div className="shell">
       <header>
@@ -306,6 +328,7 @@ export function Operations() {
               <button disabled={busy}>
                 {busy ? "Entrando…" : "Entrar na operação →"}
               </button>
+              {operationFeedback}
             </form>
           </section>
         ) : (
@@ -412,6 +435,7 @@ export function Operations() {
                 )}
               </section>
             </div>
+            {operationFeedback}
             <section className="panel orders">
               <div className="section-title">
                 <div>
@@ -539,14 +563,6 @@ export function Operations() {
               </section>
             )}
           </>
-        )}
-        <div aria-live="polite">
-          {notice && <p className="notice">{notice}</p>}
-        </div>
-        {error && (
-          <div className="error" role="alert">
-            {error}
-          </div>
         )}
         <footer>
           Commerce Operations{" "}
