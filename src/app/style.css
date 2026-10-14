@@ -309,6 +309,14 @@ td {
   border-radius: 6px;
   margin-top: 20px;
 }
+.operation-feedback:has(.notice, .error) {
+  margin-bottom: 20px;
+  scroll-margin-block: 24px;
+}
+.operation-feedback:focus {
+  outline: 3px solid #9c5700;
+  outline-offset: 4px;
+}
 .notice {
   background: #dbeccf;
   color: #244520;
