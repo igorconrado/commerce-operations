@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-14T22:00:34.584Z",
+  "timestamp": "2026-10-14T22:13:21.673Z",
   "source": "/commerce_test",
   "target": "/commerce_restore_test",
   "organizations": {
@@ -15,35 +15,35 @@
     "matched": true
   },
   "orders": {
-    "count": 5,
+    "count": 6,
     "matched": true
   },
   "idempotency": {
-    "count": 5,
+    "count": 6,
     "matched": true
   },
   "stock_movements": {
-    "count": 7,
+    "count": 8,
     "matched": true
   },
   "outbox": {
-    "count": 7,
+    "count": 9,
     "matched": true
   },
   "payment_inbox": {
-    "count": 0,
+    "count": 1,
     "matched": true
   },
   "payments": {
-    "count": 0,
+    "count": 1,
     "matched": true
   },
   "payment_commands": {
-    "count": 0,
+    "count": 1,
     "matched": true
   },
   "audit_log": {
-    "count": 7,
+    "count": 9,
     "matched": true
   }
 }
